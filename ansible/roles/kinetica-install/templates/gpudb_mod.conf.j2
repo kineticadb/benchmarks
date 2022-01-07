@@ -1,0 +1,124 @@
+#jinja2:lstrip_blocks: True, trim_blocks: True
+{% set ns = namespace(rank_count=1, host_count=1, disk_count=0, rank0_mem_bytes=0, pool_size=0) %}
+
+# ---------------------------------------------------------------------------
+
+[gaia]
+
+# ---------------------------------------------------------------------------
+
+ring_name = {{ kinetica_ring }}
+cluster_name = {{ kinetica_clustername }}
+
+{% if kinetica_build != "intel" %}
+    {% for host in ansible_play_hosts %}
+        {% if host == groups['kinetica'][0] %}
+host0.address = {{ hostvars[host]['gpudb_conf_info']['hostN_address'] }}
+host0.public_address = {{ hostvars[host]['gpudb_conf_info']['hostN_public_address'] }}
+host0.host_manager_public_url = {{ hostvars[host]['gpudb_conf_info']['hostN_hm_public_address'] }}
+host0.ram_limit = {{ hostvars[host]['gpudb_conf_info']['hostN_ram_limit'] }}
+host0.gpus = {{ hostvars[host]['gpudb_conf_info']['hostN_gpus'] }}
+host0.accepts_failover = {{ hostvars[host]['gpudb_conf_info']['hostN_failover'] }}
+tier.ram.rank0.limit = {{ hostvars[host]['gpudb_conf_info']['rank0_limit'] }}
+rank0.host = host0
+rank0.gpu = {{ hostvars[host]['gpudb_conf_info']['gpu_start_index'] }}
+            {% for i in range( hostvars[host]['gpudb_conf_info']['gpu_start_index'] | int | int, hostvars[host]['gpudb_conf_info']['gpu_end_index'] | int) %}
+rank{{ ns.rank_count }}.host = host0
+rank{{ ns.rank_count }}.taskcalc_gpu = {{ i }}
+tier.ram.rank{{ ns.rank_count }}.limit = {{ hostvars[host]['gpudb_conf_info']['mem_per_rank'] }}
+                {% set ns.rank_count = ns.rank_count + 1 %}
+            {% endfor %}
+            {% if hostvars[host]['gpudb_conf_info']['has_graph'] %}
+graph_server_ip_address = {{ hostvars[host]['gpudb_conf_info']['hostN_address'] }}
+graph_gpu_list = {{ hostvars[host]['gpudb_conf_info']['graph_gpu_list'] }}
+graph_max_memory = {{ hostvars[host]['gpudb_conf_info']['graph_max_memory'] }}
+            {% endif %}
+        {% elif  host in groups['kinetica'] %}
+            {% set ns.disk_count = 0 %}
+host{{ ns.host_count }}.address = {{ hostvars[host]['gpudb_conf_info']['hostN_address'] }}
+host{{ ns.host_count }}.public_address = {{ hostvars[host]['gpudb_conf_info']['hostN_public_address'] }}
+host{{ ns.host_count }}.host_manager_public_url = {{ hostvars[host]['gpudb_conf_info']['hostN_hm_public_address'] }}
+host{{ ns.host_count }}.ram_limit = {{ hostvars[host]['gpudb_conf_info']['hostN_ram_limit'] }}
+host{{ ns.host_count }}.gpus = {{ hostvars[host]['gpudb_conf_info']['hostN_gpus'] }}
+host{{ ns.host_count }}.accepts_failover = {{ hostvars[host]['gpudb_conf_info']['hostN_failover'] }}
+            {% for i in range( hostvars[host]['gpudb_conf_info']['gpu_start_index'] | int | int, hostvars[host]['gpudb_conf_info']['gpu_end_index'] | int) %}
+rank{{ ns.rank_count }}.host = host{{ ns.host_count }}
+rank{{ ns.rank_count }}.taskcalc_gpu = {{ i }}
+tier.ram.rank{{ ns.rank_count }}.limit = {{ hostvars[host]['gpudb_conf_info']['mem_per_rank'] }}
+                {% set ns.rank_count = ns.rank_count + 1 %}
+            {% endfor %}
+            {% if hostvars[host]['gpudb_conf_info']['has_graph'] %}
+graph_server_ip_address = {{ hostvars[host]['gpudb_conf_info']['hostN_address'] }}
+graph_gpu_list = {{ hostvars[host]['gpudb_conf_info']['graph_gpu_list'] }}
+graph_max_memory = {{ hostvars[host]['gpudb_conf_info']['graph_max_memory'] }}
+            {% endif %}
+            {% set ns.host_count = ns.host_count + 1 %}
+        {% endif %}
+    {% endfor %}
+{% else %}
+    {% for host in ansible_play_hosts %}
+        {% if host == groups['kinetica'][0] %}
+host0.address = {{ hostvars[host]['gpudb_conf_info']['hostN_address'] }}
+host0.public_address = {{ hostvars[host]['gpudb_conf_info']['hostN_public_address'] }}
+host0.host_manager_public_url = {{ hostvars[host]['gpudb_conf_info']['hostN_hm_public_address'] }}
+host0.ram_limit = {{ hostvars[host]['gpudb_conf_info']['hostN_ram_limit'] }}
+host0.accepts_failover = {{ hostvars[host]['gpudb_conf_info']['hostN_failover'] }}
+tier.ram.rank0.limit = {{ hostvars[host]['gpudb_conf_info']['rank0_limit'] }}
+rank0.host = host0
+            {% for i in range(0, hostvars[host]['gpudb_conf_info']['total_ranks'] | int) %}
+rank{{ ns.rank_count }}.host = host0
+tier.ram.rank{{ ns.rank_count }}.limit = {{ hostvars[host]['gpudb_conf_info']['mem_per_rank'] }}
+                {% set ns.rank_count = ns.rank_count + 1 %}
+            {% endfor %}
+            {% if hostvars[host]['gpudb_conf_info']['has_graph'] %}
+graph_server_ip_address = {{ hostvars[host]['gpudb_conf_info']['hostN_address'] }}
+graph_gpu_list = {{ hostvars[host]['gpudb_conf_info']['graph_gpu_list'] }}
+graph_max_memory = {{ hostvars[host]['gpudb_conf_info']['graph_max_memory'] }}
+            {% endif %}
+        {% elif host in groups['kinetica'] %}
+            {% set ns.disk_count = 0 %}
+host{{ ns.host_count }}.address = {{ hostvars[host]['gpudb_conf_info']['hostN_address'] }}
+host{{ ns.host_count }}.public_address = {{ hostvars[host]['gpudb_conf_info']['hostN_public_address'] }}
+host{{ ns.host_count }}.host_manager_public_url = {{ hostvars[host]['gpudb_conf_info']['hostN_hm_public_address'] }}
+host{{ ns.host_count }}.ram_limit = {{ hostvars[host]['gpudb_conf_info']['hostN_ram_limit'] }}
+host{{ ns.host_count }}.accepts_failover = {{ hostvars[host]['gpudb_conf_info']['hostN_failover'] }}
+            {% for i in range(0, hostvars[host]['gpudb_conf_info']['total_ranks'] | int) %}
+rank{{ ns.rank_count }}.host = host{{ ns.host_count }}
+tier.ram.rank{{ ns.rank_count }}.limit = {{ hostvars[host]['gpudb_conf_info']['mem_per_rank'] }}
+                {% set ns.rank_count = ns.rank_count + 1 %}
+            {% endfor %}
+            {% if hostvars[host]['gpudb_conf_info']['has_graph'] %}
+graph_server_ip_address = {{ hostvars[host]['gpudb_conf_info']['hostN_address'] }}
+graph_gpu_list = {{ hostvars[host]['gpudb_conf_info']['graph_gpu_list'] }}
+graph_max_memory = {{ hostvars[host]['gpudb_conf_info']['graph_max_memory'] }}
+            {% endif %}
+            {% set ns.host_count = ns.host_count + 1 %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+enable_graph_server = false
+enable_text_search = false
+
+license_key = {{ kinetica_license }}
+
+{% set ns.rank0_mem_bytes = (ansible_memory_mb.real.total | int * 1000000) | int %}
+{% if ns.rank0_mem_bytes | int < 34359738368 %}
+    {% set ns.pool_size = 1000000000 %}
+{% elif (ns.rank0_mem_bytes | int >= 34359738368) and (ns.rank0_mem_bytes | int < 137438953472) %}
+    {% set ns.pool_size = 4294967296 %}
+{% elif ns.rank0_mem_bytes | int >= 137438953472 %}
+    {% set ns.pool_size = 8589934592 %}
+{% endif %}
+pinned_memory_pool_size = {{ ns.pool_size }}
+
+# Custom params
+subtask_concurrency_limit = 32
+concurrent_kernel_execution = true
+max_concurrent_kernels = 8
+shadow_cube_enabled = true
+enable_ml = false
+sql.planner.max_memory = {{ kinetica_sql_planner_memory }}
+{% if dataimport_type == 'localfs' %}
+external_files_directory = {{ dataimport_localfs_base_dir }}
+{% endif %}

@@ -1,0 +1,39 @@
+- name: Copy JMeter test for Kinetica TPC-H
+  copy:
+    src: kinetica.tpch.jmx
+    dest: "/opt/benchmarks/jmx/"
+    mode: 0644
+
+- name: Find JMeter Path
+  find: paths="/opt/" patterns="apache-jmeter*" file_type=directory
+  register: jmeter_path_result
+  failed_when: jmeter_path_result.matched != 1
+- set_fact:
+    jmeter_path: "{{ jmeter_path_result.files[0].path }}"
+- name: Create Benchmarks directory results
+  file:
+    path: "{{ result_path }}"
+    state: directory
+    mode: '0755'
+- set_fact:
+    jmeter_exec_command: "{{ jmeter_path }}/bin/jmeter -n -t /opt/benchmarks/jmx/kinetica.tpch.jmx -Jgpudb={{ groups['kinetica'][0] }}:9191  -Jgpudb_username={{ kinetica_tpch_user }}  -Jthreads={{ jmeter_threads }} -Jloops={{ jmeter_loops }}  -l test-results.csv"
+
+- name: Debug Show Result Path
+  debug:
+    var: result_path
+- name: Debug Run Kinetica TPC-H queries
+  debug:
+    var: jmeter_exec_command
+
+- name: Run Kinetica TPC-H queries
+  shell: "{{ jmeter_exec_command }}"
+  args:
+      chdir: "{{ result_path }}"
+- name: Fetch results to local
+  synchronize:
+    src: "{{ result_path }}"
+    dest: "{{ jmeter_local_result_path }}/{{ jmeter_test_name }}-{{ date_info }}/"
+    recursive: yes
+    mode: pull
+- name: Copy inventory file to result
+  local_action: ansible.builtin.copy src="{{ inventory_file }}" dest="{{ jmeter_local_result_path }}/{{ jmeter_test_name }}-{{ date_info }}/"

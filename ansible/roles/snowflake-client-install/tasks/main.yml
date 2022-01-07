@@ -1,0 +1,2 @@
+- name: Install Snowflake Client (SnowSQL)
+  yum: name="{{ snowflake_client_download_url }}"

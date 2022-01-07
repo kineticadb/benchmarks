@@ -1,0 +1,35 @@
+- name: Create a tmp work directory
+  file:
+    path: /tmp/kinetica/tpc-h
+    state: directory
+    mode: '0755'
+- name: Upload TPC-H DDL for Kinetica
+  template: src=1_kinetica-tpch-ddl.sql dest=/tmp/kinetica/tpc-h/
+- name: Upload TPC-H User Definition for Kinetica
+  template: src=2_kinetica-tpch-user.sql dest=/tmp/kinetica/tpc-h/
+- name: Upload TPC-H LOCAL Load Script for Kinetica
+  template: src=3_kinetica-load-local-data.sql dest=/tmp/kinetica/tpc-h/
+  when: dataimport_type == 'localfs'
+- name: Upload TPC-H AWS S3 Load Script for Kinetica
+  template: src=3_kinetica-load-s3-data.sql dest=/tmp/kinetica/tpc-h/
+  when: dataimport_type == 's3'
+
+
+- name: Create TPC-H Schema and Tables in Kinetica
+  shell: "/opt/gpudb/bin/kisql --host localhost --user {{ kinetica_admin_user }} --file /tmp/kinetica/tpc-h/1_kinetica-tpch-ddl.sql"
+  environment:
+    KI_PWD: "{{ kinetica_admin_password }}"
+- name: Create TPC-H Test User and Permissions
+  shell: "/opt/gpudb/bin/kisql --host localhost --user {{ kinetica_admin_user }} --file /tmp/kinetica/tpc-h/2_kinetica-tpch-user.sql"
+  environment:
+    KI_PWD: "{{ kinetica_admin_password }}"
+- name: Load LOCAL TPC-H Data into Kinetica
+  shell: "/opt/gpudb/bin/kisql --host localhost --user {{ kinetica_admin_user }} --file /tmp/kinetica/tpc-h/3_kinetica-load-local-data.sql"
+  environment:
+    KI_PWD: "{{ kinetica_admin_password }}"
+  when: dataimport_type == 'localfs'
+- name: Load AWS S3 TPC-H Data into Kinetica
+  shell: "/opt/gpudb/bin/kisql --host localhost --user {{ kinetica_admin_user }} --file /tmp/kinetica/tpc-h/3_kinetica-load-s3-data.sql"
+  environment:
+    KI_PWD: "{{ kinetica_admin_password }}"
+  when: dataimport_type == 's3'

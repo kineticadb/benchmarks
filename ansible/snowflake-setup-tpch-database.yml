@@ -1,0 +1,4 @@
+- name: Setup TPC-H Schema and Load Data
+  hosts: snowflakeclient[0]
+  roles:
+    - snowflake-setup-tpch-database

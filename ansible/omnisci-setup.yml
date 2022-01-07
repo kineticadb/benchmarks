@@ -1,0 +1,6 @@
+- name: Prepare CentOS, Install NVIDIA and Install Omnisci
+  hosts: omnisci
+  roles:
+    - {role: centos-prepare }
+#    - {role: centos-nvidia }
+    - {role: omnisci-install }

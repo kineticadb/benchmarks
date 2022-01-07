@@ -1,0 +1,26 @@
+- name: Create a tmp work directory
+  file:
+    path: /tmp/snowflake/tpc-h
+    state: directory
+    mode: '0755'
+- name: Upload TPC-H DDL for Snowflake
+  template: src=1_snowflake-tpch-settings.sql dest=/tmp/snowflake/tpc-h
+- name: Upload TPC-H User Definition for Snowflake
+  template: src=2_snowflake-tpch-ddl.sql dest=/tmp/snowflake/tpc-h
+- name: Upload TPC-H AWS S3 Load Script for Snowflake
+  template: src=3_snowflake-tpch-load-data.sql dest=/tmp/snowflake/tpc-h
+
+- name: Create TPC-H Database and Warehouses in Snowflake
+  shell: "/usr/bin/snowsql -a {{ snowflake_account }} -u {{ snowflake_user }} -r SYSADMIN -f /tmp/snowflake/tpc-h/1_snowflake-tpch-settings.sql"
+  environment:
+    SNOWSQL_PWD: "{{ snowflake_password }}"
+- name: Create TPC-H Schema and Tables in Snowflake
+  shell: "/usr/bin/snowsql -a {{ snowflake_account }} -u {{ snowflake_user }} -r SYSADMIN -f /tmp/snowflake/tpc-h/2_snowflake-tpch-ddl.sql"
+  environment:
+    SNOWSQL_PWD: "{{ snowflake_password }}"
+- name: Load AWS S3 TPC-H Data into Kinetica
+  shell: "/usr/bin/snowsql -a {{ snowflake_account }} -u {{ snowflake_user }} -r SYSADMIN -f /tmp/snowflake/tpc-h/3_snowflake-tpch-load-data.sql"
+  environment:
+    SNOWSQL_PWD: "{{ snowflake_password }}"
+  async: 30000
+  poll: 10

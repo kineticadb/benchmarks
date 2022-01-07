@@ -1,0 +1,1 @@
+CREATE USER {{ omnisci_tpcds_user }} (password = '{{ omnisci_tpcds_password }}', is_super = 'true', default_db='{{ omnisci_tpcds_schema }}');

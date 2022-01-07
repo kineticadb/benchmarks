@@ -1,0 +1,81 @@
+- name: Delete Metastore directory
+  file:
+    path: /opt/spark3/metastore_db/
+    state: absent
+- name: Delete Data Warehouse directory
+  file:
+    path: "{{ spark3_warehouse_path }}"
+    state: absent
+- name: Delete Delta Lake directory
+  file:
+    path: "{{ spark3_deltalake_path }}"
+    state: absent
+
+- name: Create Spark Warehouse directory
+  file:
+    path: "{{ spark3_warehouse_path }}"
+    state: directory
+    mode: '0755'
+    owner: spark
+    group: spark
+
+- name: Create Spark Deltalake directory
+  file:
+    path: "{{ spark3_deltalake_path }}"
+    state: directory
+    mode: '0755'
+    owner: spark
+    group: spark
+
+- name: Create a Spark3 script directory
+  file:
+    path: /opt/spark3/setup/
+    state: directory
+    owner: spark
+    group: spark
+    mode: '0755'
+
+- name: Set Import Path for S3
+  set_fact:
+    spark3_dataimport_computed_path: "s3a://{{ dataimport_s3_bucket_name }}/{{ dataimport_tpch_s3_path }}"
+  when: dataimport_type == 's3'
+- name: Set Import Path for local FS
+  set_fact:
+    spark3_dataimport_computed_path: "{{ dataimport_tpch_localfs }}"
+  when: dataimport_type == 'localfs'
+
+- name: Debug Import Path
+  debug:
+    var: spark3_dataimport_computed_path
+
+- name: Upload TPC-H Creation Script for Data Warehouse
+  template: src=spark_datawarehouse_setup_local.scala dest=/opt/spark3/setup/
+  when: spark3_with_deltalake == 'no'
+- name: Upload TPC-H Creation Script for Data Warehouse with Deltalake
+  template: src=spark_deltalake_setup_local.scala dest=/opt/spark3/setup/
+  when: spark3_with_deltalake == 'yes'
+
+- name: Find Spark 3 Path
+  find: paths="/opt/spark3/" patterns="spark-*" file_type=directory
+  register: spark3_path_result
+  failed_when: spark3_path_result.matched != 1
+- set_fact:
+    spark3_path: "{{ spark3_path_result.files[0].path }}"
+- name: Set Spark Import Command for Data Warehouse
+  set_fact:
+    spark3_import_exec_command: "{{ spark3_path }}/bin/spark-shell {{ spark3_dataimport_args }} --packages org.apache.spark:spark-hadoop-cloud_2.12:3.0.0-palantir.80 --repositories https://dl.bintray.com/palantir/releases/ -I /opt/spark3/setup/spark_datawarehouse_setup_local.scala"
+  when: spark3_with_deltalake == 'no'
+- name: Set Spark Import Command for Deltalake
+  set_fact:
+    spark3_import_exec_command: "{{ spark3_path }}/bin/spark-shell {{ spark3_dataimport_args }} --packages io.delta:delta-core_2.12:0.7.0,org.apache.spark:spark-hadoop-cloud_2.12:3.0.0-palantir.80 --repositories https://dl.bintray.com/palantir/releases/ --conf 'spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension' --conf 'spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog' -I /opt/spark3/setup/spark_deltalake_setup_local.scala"
+  when: spark3_with_deltalake == 'yes'
+- name: Debug Spark Input Command
+  debug:
+    var: spark3_import_exec_command
+
+- name: Run Spark TPC-H import
+  shell: "{{ spark3_import_exec_command }}"
+  become: yes
+  become_user: spark
+  args:
+    chdir: "/opt/spark3/"

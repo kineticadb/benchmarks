@@ -1,0 +1,49 @@
+[all:vars]
+#kinetica_nvidia_driver=http://us.download.nvidia.com/XFree86/Linux-x86_64/430.34/NVIDIA-Linux-x86_64-430.34.run
+kinetica_nvidia_driver=file:///mapr/apps/nvidia-driver/NVIDIA-Linux-x86_64-430.26.run
+kinetica_repository=http://repo.kinetica.com/yum/7.1/CentOS/7/x86_64/
+# cuda80, cuda91 or intel
+kinetica_build=cuda91
+kinetica_ring=default
+kinetica_clustername=benchmark
+kinetica_sql_planner_memory=4000
+kinetica_license=jFYosxTn4zIX-1nZPH53gYFlf-5jF5IVe4IVgX-dZS0xeOBu7PZ-W7z8Nbj21u2l5pCl4zevscIlC4+kedhb
+kinetica_admin_user=admin
+kinetica_admin_password=Kinetica1!
+# datasource_type can be 'localfs' or 's3'
+dataimport_type=localfs
+dataimport_localfs_base_dir=/mapr/data/qe
+dataimport_s3_bucket_name=kinetica-benchmark
+dataimport_s3_region=eu-central-1
+dataimport_s3_user=AKIA3TZ6GK7TDAQ6KKHT
+dataimport_s3_password=FfsLD8vMTCg9tteW3aCiExmdWZAmSUtplpQe7iME
+
+# TPC-DS related
+kinetica_tpcds_with_partitions=no
+kinetica_tpcds_user=benchmark_tpcds
+kinetica_tpcds_password=Kinetica1!
+kinetica_tpcds_schema=BENCHMARK_TPCDS_SF100
+dataimport_tpcds_s3_path=tpc-ds/sf100/
+dataimport_tpcds_localfs=/mapr/data/qe/tpc/tpc-ds/s100/123120192359/csv
+
+# TPC-H related
+kinetica_tpch_user=benchmark_tpch
+kinetica_tpch_password=Kinetica1!
+kinetica_tpch_schema=BENCHMARK_TPCH_SF100
+dataimport_tpch_s3_path=tpc-h/sf100/
+dataimport_tpch_localfs=/mapr/data/qe/tpc/tpc-h/s100/csv
+
+# Test settings
+jmeter_loops=1
+jmeter_threads=1
+jmeter_local_result_path=/mnt/c/Users/carstenhufe/Documents/benchmarks-results/
+
+[kinetica]
+#172.31.0.90 ansible_user=centos ansible_become=yes ansible_become_method=sudo
+#172.31.0.91 ansible_user=centos ansible_become=yes ansible_become_method=sudo
+#172.31.0.92 ansible_user=centos ansible_become=yes ansible_become_method=sudo
+#172.31.33.13 ansible_user=centos ansible_become=yes ansible_become_method=sudo
+172.31.31.25 ansible_user=ubuntu ansible_become=yes ansible_become_method=sudo
+
+[jmeter]
+172.31.106.235 ansible_user=centos ansible_become=yes ansible_become_method=sudo

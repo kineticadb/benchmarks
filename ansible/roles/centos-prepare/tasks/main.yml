@@ -1,0 +1,75 @@
+- name: Upgrade all CentOS 7 packages
+  yum:
+    name: '*'
+    state: latest
+    update_cache: yes
+
+- name: Install Midnight Commander
+  yum:
+    name: mc
+    state: latest
+    update_cache: yes
+
+- name: start
+  debug:
+    msg: "Checking for SELinux"
+- name: Turn off SELINUX if enabled
+  block:
+    - name: grab status
+      shell: "sestatus | grep disabled"
+      args:
+        warn: false
+      register: sestatus
+      failed_when: no
+    - name: set_continue var
+      set_fact:
+        se_continue: "{% if sestatus.rc == 1 %}true{% else %}false{% endif %}"
+    - name: get current status
+      shell: grep "SELINUX=" /etc/selinux/config | grep -v '#' | cut -d '=' -f2
+      args:
+        warn: false
+      register: sestatus
+      when: se_continue == true
+    - name: set state
+      set_fact:
+        state: "{{ sestatus.stdout }}"
+      when: se_continue == true
+    - name: edit selinux conf
+      lineinfile:
+        path: "/etc/selinux/config"
+        regexp: '#? ?SELINUX={{state}}'
+        line: "SELINUX=disabled"
+        backup: yes
+      when: se_continue == true
+
+# Required for NVIDIA drivers
+- name: Install kernel headers
+  block:
+    - yum:
+        name: "kernel-headers"
+        state: present
+        update_cache: yes
+    - yum:
+        name: "kernel-devel"
+        state: present
+        update_cache: yes
+
+- name: Blacklist nouveau
+  kernel_blacklist:
+    name: nouveau
+    state: present
+
+- name: Remove nouveau
+  block:
+    - name: disabling nouveau
+      modprobe:
+        name: nouveau
+        state: absent
+  rescue:
+    - fail:
+        msg: "Nouveau module could not be unloaded, please restart your machine and try again"
+
+
+- name: Reboot a for new kernel
+  reboot:
+    reboot_timeout: 600

@@ -1,0 +1,4 @@
+- name: Setup TPC-DS Schema and Load Data
+  hosts: spark3[0]
+  roles:
+    - spark3-stop-thrift-server

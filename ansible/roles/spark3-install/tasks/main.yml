@@ -1,0 +1,81 @@
+- name: Install OpenJDK 8
+  yum:
+    name: java-1.8.0-openjdk
+    state: latest
+- name: Install OpenJDK 8 Devel
+  yum:
+    name: java-1.8.0-openjdk-devel
+    state: latest
+
+- name: Create Spark User
+  user:
+    name: spark
+    state: present
+    comment: Spark 3 user
+
+- name: Create Spark Install directory
+  file:
+    path: "/opt/spark3/"
+    state: directory
+    mode: '0755'
+    owner: spark
+    group: spark
+
+- name: Download Spark3
+  get_url:
+    url: "{{ spark3_download_url }}"
+    dest: /opt/spark3/spark3.tgz
+    timeout: 1800
+    owner: spark
+    mode: 0644
+- name: Unarchive Spark 3
+  unarchive:
+    src: /opt/spark3/spark3.tgz
+    dest: /opt/spark3/
+    owner: spark
+    group: spark
+    remote_src: yes
+
+- name: Find Spark 3 Path
+  find: paths="/opt/spark3/" patterns="spark-*" file_type=directory
+  register: spark3_path_result
+  failed_when: spark3_path_result.matched != 1
+- set_fact:
+    spark3_path: "{{ spark3_path_result.files[0].path }}"
+
+- name: Create Spark Warehouse directory
+  file:
+    path: "{{ spark3_warehouse_path }}"
+    state: directory
+    mode: '0755'
+    owner: spark
+    group: spark
+
+- name: Create Spark Deltalake directory
+  file:
+    path: "{{ spark3_deltalake_path }}"
+    state: directory
+    mode: '0755'
+    owner: spark
+    group: spark
+
+- name: Upload Spark3 config
+  template:
+    src: spark-defaults.conf
+    dest: "{{ spark3_path }}/conf/spark-defaults.conf"
+    owner: spark
+    group: spark
+
+- name: Upload Spark3 Env
+  template:
+    src: spark-env.sh
+    dest: "{{ spark3_path }}/conf/spark-env.sh"
+    owner: spark
+    group: spark
+    mode: '0755'
+
+- name: Upload Spark3 Ulimit conf
+  template:
+    src: spark-ulimit.conf
+    dest: "/etc/security/limits.d/99-spark.conf"
+

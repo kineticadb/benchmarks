@@ -1,0 +1,26 @@
+- name: Create a tmp work directory
+  file:
+    path: /tmp/snowflake/tpc-ds
+    state: directory
+    mode: '0755'
+- name: Upload TPC-DS DDL for Snowflake
+  template: src=1_snowflake-tpcds-settings.sql dest=/tmp/snowflake/tpc-ds
+- name: Upload TPC-DS User Definition for Snowflake
+  template: src=2_snowflake-tpcds-ddl.sql dest=/tmp/snowflake/tpc-ds
+- name: Upload TPC-DS AWS S3 Load Script for Snowflake
+  template: src=3_snowflake-tpcds-load-data.sql dest=/tmp/snowflake/tpc-ds
+
+- name: Create TPC-DS Database and Warehouses in Snowflake
+  shell: "/usr/bin/snowsql -a {{ snowflake_account }} -u {{ snowflake_user }} -r SYSADMIN -f /tmp/snowflake/tpc-ds/1_snowflake-tpcds-settings.sql"
+  environment:
+    SNOWSQL_PWD: "{{ snowflake_password }}"
+- name: Create TPC-DS Schema and Tables in Snowflake
+  shell: "/usr/bin/snowsql -a {{ snowflake_account }} -u {{ snowflake_user }} -r SYSADMIN -f /tmp/snowflake/tpc-ds/2_snowflake-tpcds-ddl.sql"
+  environment:
+    SNOWSQL_PWD: "{{ snowflake_password }}"
+- name: Load AWS S3 TPC-DS Data into Kinetica
+  shell: "/usr/bin/snowsql -a {{ snowflake_account }} -u {{ snowflake_user }} -r SYSADMIN -f /tmp/snowflake/tpc-ds/3_snowflake-tpcds-load-data.sql"
+  environment:
+    SNOWSQL_PWD: "{{ snowflake_password }}"
+  async: 30000
+  poll: 10

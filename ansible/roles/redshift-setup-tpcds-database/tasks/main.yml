@@ -1,0 +1,20 @@
+- name: Create a tmp work directory
+  file:
+    path: /tmp/redshift/tpc-ds
+    state: directory
+    mode: '0755'
+- name: Upload TPC-DS DDL for Redshift
+  template: src=1_redshift-tpcds-ddl.sql dest=/tmp/redshift/tpc-ds
+- name: Upload TPC-DS AWS S3 Load Script for Redshift
+  template: src=2_redshift-tpcds-load-data.sql dest=/tmp/redshift/tpc-ds
+- debug: msg="/usr/bin/psql -h {{ redshift_server }} -U {{ redshift_user }} -p 5439 -d {{ redshift_tpcds_database }} -f /tmp/redshift/tpc-ds/1_redshift-tpcds-ddl.sql"
+- name: Create TPC-DS Schema and Tables in Redshift
+  shell: "/usr/bin/psql -h {{ redshift_server }} -U {{ redshift_user }} -p 5439 -d {{ redshift_tpcds_database }} -f /tmp/redshift/tpc-ds/1_redshift-tpcds-ddl.sql"
+  environment:
+    PGPASSWORD: "{{ redshift_password }}"
+- name: Load AWS S3 TPC-DS Data into Kinetica
+  shell: "/usr/bin/psql -h {{ redshift_server }} -U {{ redshift_user }} -p 5439 -d {{ redshift_tpcds_database }} -f /tmp/redshift/tpc-ds/2_redshift-tpcds-load-data.sql"
+  environment:
+    PGPASSWORD: "{{ redshift_password }}"
+  async: 30000
+  poll: 10

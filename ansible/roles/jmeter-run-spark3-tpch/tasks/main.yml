@@ -1,0 +1,45 @@
+- name: Copy JMeter test for Spark 3 TPC-H
+  copy:
+    src: spark3.tpch.jmx
+    dest: "/opt/benchmarks/jmx/"
+    mode: 0644
+
+- name: Find JMeter Path
+  find: paths="/opt/" patterns="apache-jmeter*" file_type=directory
+  register: jmeter_path_result
+  failed_when: jmeter_path_result.matched != 1
+- set_fact:
+    jmeter_test_name: spark3-tpch
+    jmeter_path: "{{ jmeter_path_result.files[0].path }}"
+    date_info: "{{ ansible_date_time.date }}.{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+#    date_info: "2020-09-23.164416"
+- set_fact:
+    result_path: "/opt/benchmarks/results/{{ jmeter_test_name }}-{{ date_info }}/"
+- name: Create Benchmarks directory results
+  file:
+    path: "{{ result_path }}"
+    state: directory
+    mode: '0755'
+- set_fact:
+    jmeter_exec_command: "{{ jmeter_path }}/bin/jmeter -n -t /opt/benchmarks/jmx/spark3.tpch.jmx -Jspark3thrift={{ groups['spark3'][0] }}:10000 -Jthreads={{ jmeter_threads }} -Jloops={{ jmeter_loops }}  -l test-results.csv"
+
+- name: Debug Show Result Path
+  debug:
+    var: result_path
+
+- name: Debug Run Spark 3 - TPC-H queries
+  debug:
+    var: jmeter_exec_command
+
+- name: Run Spark 3 - TPC-H queries
+  shell: "{{ jmeter_exec_command }}"
+  args:
+      chdir: "{{ result_path }}"
+- name: Fetch results to local
+  synchronize:
+    src: "{{ result_path }}"
+    dest: "{{ jmeter_local_result_path }}/{{ jmeter_test_name }}-{{ date_info }}/"
+    recursive: yes
+    mode: pull
+- name: Copy inventory file to result
+  local_action: ansible.builtin.copy src="{{ inventory_file }}" dest="{{ jmeter_local_result_path }}/{{ jmeter_test_name }}-{{ date_info }}/"

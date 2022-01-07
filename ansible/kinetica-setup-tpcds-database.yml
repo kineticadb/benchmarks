@@ -1,0 +1,4 @@
+- name: Setup TPC-DS Schema and Load Data
+  hosts: kinetica[0]
+  roles:
+    - kinetica-setup-tpcds-database

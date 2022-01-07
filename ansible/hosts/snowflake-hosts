@@ -1,0 +1,37 @@
+[all:vars]
+snowflake_client_download_url=https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowflake-snowsql-1.2.10-1.x86_64.rpm
+snowflake_account=jc55269.eu-central-1
+snowflake_user=CHUFE
+snowflake_password=AQFSRrPSeD35
+
+# Snowflake is only S3 import
+dataimport_s3_bucket_name=kinetica-benchmark
+dataimport_s3_region=eu-central-1
+dataimport_s3_user=AKIA3TZ6GK7TDAQ6KKHT
+dataimport_s3_password=FfsLD8vMTCg9tteW3aCiExmdWZAmSUtplpQe7iME
+
+# TPC-DS related
+dataimport_tpcds_s3_path=tpc-ds/sf100/
+snowflake_tpcds_database=BENCHMARKS
+snowflake_tpcds_schema=TPCDS_SF100
+# XSMALL | SMALL | MEDIUM | LARGE | XLARGE | XXLARGE | XXXLARGE | X4LARGE
+snowflake_tpcds_warehouse_size=XSMALL
+
+# TPC-H related
+dataimport_tpch_s3_path=tpc-h/sf100/
+snowflake_tpch_database=BENCHMARKS
+snowflake_tpch_schema=TPCH_SF100
+# XSMALL | SMALL | MEDIUM | LARGE | XLARGE | XXLARGE | XXXLARGE | X4LARGE
+snowflake_tpch_warehouse_size=XSMALL
+
+# Test settings
+jmeter_loops=1
+jmeter_threads=1
+jmeter_local_result_path=/mnt/c/Users/carstenhufe/Documents/benchmarks-results/
+
+[snowflakeclient]
+# Only one host!
+172.31.106.235 ansible_user=centos ansible_become=yes ansible_become_method=sudo
+
+[jmeter]
+172.31.106.235 ansible_user=centos ansible_become=yes ansible_become_method=sudo

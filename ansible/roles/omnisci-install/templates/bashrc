@@ -1,0 +1,6 @@
+# User specific aliases and functions
+export OMNISCI_USER=omnisci
+export OMNISCI_GROUP=omnisci
+export OMNISCI_STORAGE=/opt/omnisci_persist
+export OMNISCI_PATH=/opt/omnisci
+export OMNISCI_LOG=/opt/omnisci_logs

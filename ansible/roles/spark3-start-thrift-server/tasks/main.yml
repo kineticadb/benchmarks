@@ -1,0 +1,25 @@
+- name: Find Spark 3 Path
+  find: paths="/opt/spark3/" patterns="spark-*" file_type=directory
+  register: spark3_path_result
+  failed_when: spark3_path_result.matched != 1
+- set_fact:
+    spark3_path: "{{ spark3_path_result.files[0].path }}"
+
+- name: Set Spark Thrift Server Command for Data Warehouse
+  set_fact:
+    spark3_thrift_exec_command: "{{ spark3_path }}/sbin/start-thriftserver.sh {{ spark3_thriftserver_args }}"
+  when: spark3_with_deltalake == 'no'
+- name: Set Spark Thrift Server Command for Deltalake
+  set_fact:
+    spark3_thrift_exec_command: "{{ spark3_path }}/sbin/start-thriftserver.sh {{ spark3_thriftserver_args }} --packages io.delta:delta-core_2.12:0.7.0 --conf 'spark.sql.extensions=io.delta.sql.DeltaSparkSessionExtension' --conf 'spark.sql.catalog.spark_catalog=org.apache.spark.sql.delta.catalog.DeltaCatalog'"
+  when: spark3_with_deltalake == 'yes'
+- name: Debug Spark Thrift Exec Command
+  debug:
+    var: spark3_thrift_exec_command
+
+- name: Run Spark Thrift Server
+  become: yes
+  become_user: spark
+  shell: "{{ spark3_thrift_exec_command }}"
+  args:
+    chdir: "/opt/spark3/"

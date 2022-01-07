@@ -1,0 +1,48 @@
+- name: Install OpenJDK 8
+  yum:
+    name: java-1.8.0-openjdk
+    state: latest
+- name: Install OpenJDK 8 Devel
+  yum:
+    name: java-1.8.0-openjdk-devel
+    state: latest
+- name: Download JMeter
+  get_url:
+    url: "{{ jmeter_download_url }}"
+    dest: /opt/jmeter.tar.gz
+    timeout: 1800
+    mode: 0644
+- name: Unarchive JMeter
+  unarchive:
+    src: /opt/jmeter.tar.gz
+    dest: /opt
+    remote_src: yes
+- name: Find JMeter Path
+  find: paths="/opt/" patterns="apache-jmeter*" file_type=directory
+  register: jmeter_path_result
+  failed_when: jmeter_path_result.matched != 1
+- set_fact:
+    jmeter_path: "{{ jmeter_path_result.files[0].path }}"
+- name: Set higher memory to JMeter 16 GB
+  lineinfile:
+    path: "{{ jmeter_path }}/bin/jmeter"
+    insertbefore: '^PRG='
+    line: 'export HEAP="-Xms16g -Xmx16g -XX:MaxMetaspaceSize=512m"'
+
+- name: Create Benchmarks directory
+  file:
+    path: /opt/benchmarks
+    state: directory
+    mode: '0755'
+
+- name: Create Benchmarks directory JMX
+  file:
+    path: /opt/benchmarks/jmx
+    state: directory
+    mode: '0755'
+
+- name: Create Benchmarks directory results
+  file:
+    path: /opt/benchmarks/results
+    state: directory
+    mode: '0755'

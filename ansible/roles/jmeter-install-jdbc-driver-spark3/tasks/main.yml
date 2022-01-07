@@ -1,0 +1,12 @@
+- name: Find JMeter Path
+  find: paths="/opt/" patterns="apache-jmeter*" file_type=directory
+  register: jmeter_path_result
+  failed_when: jmeter_path_result.matched != 1
+- set_fact:
+    jmeter_path: "{{ jmeter_path_result.files[0].path }}"
+- name: Copy Hadoop and Hive JDBC drivers for Spark 3
+  copy:
+    src: .
+    directory_mode: yes
+    dest: "{{ jmeter_path }}/lib/ext/"
+    mode: 0644

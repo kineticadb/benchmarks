@@ -1,0 +1,43 @@
+- name: Create a tmp work directory
+  file:
+    path: /tmp/kinetica/tpc-ds
+    state: directory
+    mode: '0755'
+- name: Upload TPC-DS DDL for Kinetica
+  template: src=1_kinetica-tpcds-ddl.sql dest=/tmp/kinetica/tpc-ds/
+- name: Upload TPC-DS DDL with partitions for Kinetica
+  template: src=1_kinetica-tpcds-ddl_partitions.sql dest=/tmp/kinetica/tpc-ds/
+- name: Upload TPC-DS User Definition for Kinetica
+  template: src=2_kinetica-tpcds-user.sql dest=/tmp/kinetica/tpc-ds/
+- name: Upload TPC-DS LOCAL Load Script for Kinetica
+  template: src=3_kinetica-load-local-data.sql dest=/tmp/kinetica/tpc-ds/
+  when: dataimport_type == 'localfs'
+- name: Upload TPC-DS AWS S3 Load Script for Kinetica
+  template: src=3_kinetica-load-s3-data.sql dest=/tmp/kinetica/tpc-ds/
+  when: dataimport_type == 's3'
+
+
+- name: Create TPC-DS Schema and Tables in Kinetica
+  shell: "/opt/gpudb/bin/kisql --host localhost --user {{ kinetica_admin_user }} --file /tmp/kinetica/tpc-ds/1_kinetica-tpcds-ddl.sql"
+  environment:
+    KI_PWD: "{{ kinetica_admin_password }}"
+  when: kinetica_tpcds_with_partitions == 'no'
+- name: Create TPC-DS Schema and Tables with partitions in Kinetica
+  shell: "/opt/gpudb/bin/kisql --host localhost --user {{ kinetica_admin_user }} --file /tmp/kinetica/tpc-ds/1_kinetica-tpcds-ddl_partitions.sql"
+  environment:
+    KI_PWD: "{{ kinetica_admin_password }}"
+  when: kinetica_tpcds_with_partitions == 'yes'
+- name: Create TPC-DS Test User and Permissions
+  shell: "/opt/gpudb/bin/kisql --host localhost --user {{ kinetica_admin_user }} --file /tmp/kinetica/tpc-ds/2_kinetica-tpcds-user.sql"
+  environment:
+    KI_PWD: "{{ kinetica_admin_password }}"
+- name: Load LOCAL TPC-DS Data into Kinetica
+  shell: "/opt/gpudb/bin/kisql --host localhost --user {{ kinetica_admin_user }} --file /tmp/kinetica/tpc-ds/3_kinetica-load-local-data.sql"
+  environment:
+    KI_PWD: "{{ kinetica_admin_password }}"
+  when: dataimport_type == 'localfs'
+- name: Load AWS S3 TPC-DS Data into Kinetica
+  shell: "/opt/gpudb/bin/kisql --host localhost --user {{ kinetica_admin_user }} --file /tmp/kinetica/tpc-ds/3_kinetica-load-s3-data.sql"
+  environment:
+    KI_PWD: "{{ kinetica_admin_password }}"
+  when: dataimport_type == 's3'

@@ -1,0 +1,4 @@
+- name: JMeter - Run Snowflake TPC-H Benchmark
+  hosts: jmeter
+  roles:
+    - {role: jmeter-run-snowflake-tpch }

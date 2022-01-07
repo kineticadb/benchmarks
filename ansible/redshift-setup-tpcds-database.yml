@@ -1,0 +1,4 @@
+- name: Setup TPC-DS Schema and Load Data
+  hosts: redshiftclient[0]
+  roles:
+    - redshift-setup-tpcds-database

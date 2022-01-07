@@ -1,0 +1,5 @@
+- name: Redshift Client Setup
+  hosts: redshiftclient
+  roles:
+#    - {role: centos-prepare }
+    - {role: redshift-client-install }

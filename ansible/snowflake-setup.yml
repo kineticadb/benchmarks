@@ -1,0 +1,5 @@
+- name: Snowflake Client Setup
+  hosts: snowflakeclient
+  roles:
+#    - {role: centos-prepare }
+    - {role: snowflake-client-install }

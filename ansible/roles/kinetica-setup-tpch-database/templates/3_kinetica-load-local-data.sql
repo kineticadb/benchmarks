@@ -1,0 +1,8 @@
+copy into {{ kinetica_tpch_schema }}.region from file paths '{{ dataimport_tpch_localfs }}/region.csv' format text (delimiter '|', includes header = false) with options (loading mode = distributed shared);
+copy into {{ kinetica_tpch_schema }}.nation from file paths '{{ dataimport_tpch_localfs }}/nation.csv' format text (delimiter '|', includes header = false) with options (loading mode = distributed shared);
+copy into {{ kinetica_tpch_schema }}.supplier from file paths '{{ dataimport_tpch_localfs }}/supplier.csv' format text (delimiter '|', includes header = false) with options (loading mode = distributed shared);
+copy into {{ kinetica_tpch_schema }}.customer from file paths '{{ dataimport_tpch_localfs }}/customer.csv' format text (delimiter '|', includes header = false) with options (loading mode = distributed shared);
+copy into {{ kinetica_tpch_schema }}.part from file paths '{{ dataimport_tpch_localfs }}/part.csv' format text (delimiter '|', includes header = false) with options (loading mode = distributed shared);
+copy into {{ kinetica_tpch_schema }}.partsupp from file paths '{{ dataimport_tpch_localfs }}/partsupp.csv' format text (delimiter '|', includes header = false) with options (loading mode = distributed shared);
+copy into {{ kinetica_tpch_schema }}.orders from file paths '{{ dataimport_tpch_localfs }}/orders.csv' format text (delimiter '|', includes header = false) with options (loading mode = distributed shared);
+copy into {{ kinetica_tpch_schema }}.lineitem from file paths '{{ dataimport_tpch_localfs }}/lineitem.csv' format text (delimiter '|', includes header = false) with options (loading mode = distributed shared);

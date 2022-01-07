@@ -1,0 +1,4 @@
+- name: Setup TPC-H Schema and Load Data
+  hosts: kinetica[0]
+  roles:
+    - kinetica-setup-tpch-database

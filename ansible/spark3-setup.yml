@@ -1,0 +1,5 @@
+- name: Prepare CentOS and Install Spark
+  hosts: spark3
+  roles:
+#    - {role: centos-prepare }
+    - {role: spark3-install }

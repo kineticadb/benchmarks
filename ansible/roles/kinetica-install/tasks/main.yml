@@ -1,0 +1,276 @@
+- name: Add official Kinetica YUM repository
+  yum_repository:
+    name: kinetica-7.1
+    description: Official Repo for Kinetica version 7.1
+    baseurl: "{{ kinetica_repository }}"
+    gpgcheck: no
+- name: Kinetica 7.1 Installation
+  block:
+    ## Package install for All Except Debian
+    - name: Install Kinetica
+      package:
+        name: "gpudb-{{ kinetica_build }}-license"
+        update_cache: yes
+        state: present
+      retries: 5
+
+###################################
+
+- name: generic facts
+  set_fact:
+    public_address: "{{ inventory_hostname }}"
+    private_ip: "{{ inventory_hostname }}"
+    failover: "false"
+    nvidia_attached_gpus:
+    reserved_gpus: 0
+
+- name: create intel dictionary
+  when: kinetica_build == "intel"
+  block:
+    - set_fact:
+        graph_gpu_list: -1
+        has_graph: "false"
+    - set_fact:
+        total_ranks: 2
+    - set_fact:
+        mem_per_rank: "{{ ((ansible_memory_mb.real.total | int * 0.7  * 1000000 )| int / (total_ranks | int)) | int }}"
+        graph_max_memory: "{{ ((ansible_memory_mb.real.total | int * 0.7 )| int / (total_ranks | int)) | int }}"
+
+    - name: save all necessary facts in dictionary
+      set_fact:
+        gpudb_conf_info: "{{ gpudb_conf_info | default({}) | combine({item.key: item.value}) }}"
+      with_items:
+        - {key: 'hostN_address', value: "{{ private_ip }}"}
+        - {key: 'hostN_public_address', value: "{{ public_address }}"}
+        - {key: 'hostN_hm_public_address', value: "http://{{ public_address }}:9300"}
+        - {key: 'hostN_ram_limit', value: "{{ (ansible_memory_mb.real.total | int * 0.85 * 1000000 ) | int }}"}
+        - {key: 'hostN_failover', value: "{{ failover }}"}
+        - {key: 'rank0_limit', value: "{{ (ansible_memory_mb.real.total | int * 0.1  * 1000000 )| int }}"}
+        - {key: 'total_ranks', value: "{{ total_ranks }}"}
+        - {key: 'graph_gpu_list', value: "{{ graph_gpu_list }}"}
+        - {key: 'total_mem_mb', value: "{{ ansible_memory_mb.real.total }}"}
+        - {key: 'mem_per_rank', value: "{{ mem_per_rank }}"}
+        - {key: 'graph_max_memory', value: "{{ graph_max_memory }}"}
+        - {key: 'has_graph', value: "{{ has_graph }}"}
+
+- name: create cuda dictionary
+  when: kinetica_build != "intel"
+  block:
+    - shell: "nvidia-smi -L | wc -l"
+      register: nvidia_attached_gpus_shell
+    - set_fact:
+        nvidia_attached_gpus: "{{ nvidia_attached_gpus_shell.stdout | int }}"
+    - set_fact:
+        reserved_gpus: 0
+        hostN_gpus: ""
+        available_gpus: "{{ nvidia_attached_gpus | int - reserved_gpus | int }}"
+    - debug:
+        var: nvidia_attached_gpus
+    - debug:
+        var: reserved_gpus
+    - debug:
+        var: available_gpus
+    - set_fact:
+        hostN_gpus: "{% for i in range(0, available_gpus | int) %}{{ hostN_gpus + i | string}}{% if not loop.last %}{{ hostN_gpus + ', ' }}{% endif %}{% endfor %}"
+        graph_gpu_list: "-1"
+        has_graph: "false"
+
+    - set_fact:
+        gpu_start_index: "{{ reserved_gpus }}"
+        total_ranks: "{{ available_gpus }}"
+    - set_fact:
+        mem_per_rank: "{{ ((ansible_memory_mb.real.total | int * 0.7  * 1000000 )| int / (total_ranks | int)) | int }}"
+        graph_max_memory: "{{ ((ansible_memory_mb.real.total | int * 0.7 )| int / (total_ranks | int)) | int }}"
+
+    - name: save all necessary facts in dictionary
+      set_fact:
+        gpudb_conf_info: "{{ gpudb_conf_info | default({}) | combine({item.key: item.value}) }}"
+      with_items:
+        - {key: 'hostN_address', value: "{{ private_ip }}"}
+        - {key: 'hostN_public_address', value: "{{ public_address }}"}
+        - {key: 'hostN_hm_public_address', value: "http://{{ public_address }}:9300"}
+        - {key: 'hostN_ram_limit', value: "{{ (ansible_memory_mb.real.total | int * 0.85 * 1000000 ) | int }}"}
+        - {key: 'hostN_gpus', value: "{{ hostN_gpus }}"}
+        - {key: 'hostN_failover', value: "{{ failover }}"}
+        - {key: 'rank0_limit', value: "{{ (ansible_memory_mb.real.total | int * 0.1  * 1000000 )| int }}"}
+        - {key: 'gpu_start_index', value: "{{ gpu_start_index }}"}
+        - {key: 'gpu_end_index', value: "{{ nvidia_attached_gpus }}"}
+        - {key: 'total_ranks', value: "{{ total_ranks }}"}
+        - {key: 'graph_gpu_list', value: "{{ graph_gpu_list }}"}
+        - {key: 'total_mem_mb', value: "{{ ansible_memory_mb.real.total }}"}
+        - {key: 'mem_per_rank', value: "{{ mem_per_rank }}"}
+        - {key: 'graph_max_memory', value: "{{ graph_max_memory }}"}
+        - {key: 'has_graph', value: "{{ has_graph }}"}
+
+- debug:
+    var: "{{ item }}"
+  with_dict: "{{ gpudb_conf_info }}"
+
+- name: Back up and merge gpudb.conf
+  when: inventory_hostname == groups['kinetica'][0]
+  block:
+  - name: autoconfig | set gpudb.conf
+    template:
+      src: gpudb_mod.conf.j2
+      dest: /opt/gpudb/core/etc/gpudb_mod.conf
+      backup: true
+  - set_fact:
+      date_info: "{{ ansible_date_time.date }}.{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+  - name: autoconfig | backup gpudb.conf
+    shell: "cp /opt/gpudb/core/etc/gpudb.conf /opt/gpudb/core/etc/gpudb.conf.bak.{{ date_info }}"
+    args:
+      warn: false
+
+  - name: autoconfig | merge gpudb.conf
+    shell: "/opt/gpudb/bin/gpudb_env /opt/gpudb/core/bin/gpudb_config_compare.py /opt/gpudb/core/etc/gpudb_mod.conf /opt/gpudb/core/etc/gpudb.conf /opt/gpudb/core/etc/gpudb.conf.new"
+    args:
+      warn: false
+
+  - name: autoconfig | replace gpudb.conf
+    shell: "cp -f /opt/gpudb/core/etc/gpudb.conf.new /opt/gpudb/core/etc/gpudb.conf"
+    args:
+      warn: false
+
+  - name: autoconfig | ensure permissions on gpudb.conf
+    file:
+      path: /opt/gpudb/core/etc/gpudb.conf
+      owner: gpudb
+      group: gpudb
+      mode: 0644
+  - name: autoconfig | restart host_manager
+    shell: "/opt/gpudb/core/bin/gpudb restart-host-manager"
+    args:
+      warn: false
+  - name: autoconfig | change admin pwd - env var
+    become: yes
+    become_user: gpudb
+    shell: "/opt/gpudb/bin/gpudb_env /opt/gpudb/core/bin/gpudb_alter_password.py {{ kinetica_admin_user }} /opt/gpudb/core/etc/gpudb.conf"
+    environment:
+      GPUDB_ALTER_PASSWORD_PASSWORD: "{{ kinetica_admin_password }}"
+    args:
+      warn: false
+  - name: autoconfig | change reveal admin pwd - env var
+    become_user: gpudb
+    become: yes
+    shell: "cd /opt/gpudb/connectors/reveal && ./gpudb-reveal.sh run_cmd fabmanager reset-password --app caravel --username {{ kinetica_admin_user }}  --password ''"
+    environment:
+      FABMANAGER_PASSWORD: "{{ kinetica_admin_password }}"
+    args:
+      warn: false
+    failed_when: no
+    register: reveal_pwd_out
+  - name: autoconfig | change reveal admin pwd - cli
+    become_user: gpudb
+    become: yes
+    shell: "cd /opt/gpudb/connectors/reveal && ./gpudb-reveal.sh run_cmd fabmanager reset-password --app caravel --username {{ kinetica_admin_user }} --password '{{ kinetica_admin_password }}'"
+    args:
+      warn: false
+    when: "reveal_pwd_out.rc != 0 or 'reseted' in reveal_pwd_out.stdout"
+  - shell: "grep 'tier.persist.rank0.path' /opt/gpudb/core/etc/gpudb.conf || echo false"
+    register: rank0_persist
+  - name: copy security_info json
+    block:
+      - name: save var
+        set_fact:
+          rank0_persist: "{{ rank0_persist.stdout.split() | last }}"
+      - debug:
+          msg: "{{ rank0_persist }}"
+      - name: copy security_info.json
+        shell: "mkdir -p {{rank0_persist}}/gpudb/rank-0/ && cp -rf /opt/gpudb/persist/gpudb/rank-0/security_info.json {{rank0_persist}}/gpudb/rank-0/ && chown -R gpudb:gpudb {{rank0_persist}}/gpudb"
+        args:
+          warn: false
+        ignore_errors: yes
+        when: rank0_persist != "false"
+
+  - name: grab head node sec info
+    fetch:
+      src: /opt/gpudb/persist/gpudb/rank-0/security_info.json
+      dest: "{{ role_path }}/files/security_info.json"
+#######################
+- name: copy gpudb.conf to workers
+  block:
+    - shell: cat /opt/gpudb/core/etc/gpudb.conf
+      register: gpudb_conf_out
+      when: inventory_hostname == groups['kinetica'][0]
+    - set_fact:
+        gpudb_conf: "{{ gpudb_conf_out.stdout_lines }}"
+      when: inventory_hostname == groups['kinetica'][0]
+    - set_fact:
+        gpudb_conf: "{{ hostvars[groups['kinetica'][0]]['gpudb_conf'] }}"
+    - copy:
+        content: "{{ gpudb_conf | join('\n') }}"
+        dest: "/opt/gpudb/core/etc/gpudb.conf"
+        mode: "644"
+        owner: "gpudb"
+        group: "gpudb"
+      when: inventory_hostname in groups['kinetica'] and inventory_hostname != groups['kinetica'][0]
+
+- name: copy security_info.json accross cluster
+  when: inventory_hostname in groups['kinetica'] and inventory_hostname != groups['kinetica'][0]
+  block:
+    - name: check if rank-0 exists in non-head nodes
+      stat:
+        path: "/opt/gpudb/persist/gpudb/rank-0"
+      register: rank_0_stat
+
+    - name: copy sec_info to non head nodes
+      when: not rank_0_stat.stat.exists
+      block:
+        - name: create path if not exists
+          file:
+            path: "/opt/gpudb/persist/gpudb/rank-0"
+            state: directory
+            group: gpudb
+            owner: gpudb
+            mode: 0775
+        - name: copy file to nodes
+          copy:
+            src: security_info.json
+            dest: /opt/gpudb/persist/gpudb/rank-0/security_info.json
+            mode: 0755
+            owner: gpudb
+            group: gpudb
+
+- name: post_flight | restart all host managers to sync version
+  block:
+    - shell: "timeout 3m /opt/gpudb/core/bin/gpudb stop-host-manager; /opt/gpudb/core/bin/gpudb kill 0"
+      failed_when: no
+      ignore_errors: yes
+    - shell: "/opt/gpudb/core/bin/gpudb start-host-manager"
+  when: inventory_hostname in groups['kinetica']
+
+- name: post_flight | security
+  block:
+    - name: reload facts
+      gpudb_facts:
+        enabled: true
+    - name: post_flight | generate key if not found
+      shell: "yes | /opt/gpudb/core/bin/gpudb_generate_key.sh"
+      become: yes
+      become_user: gpudb
+      when: gpudb_secret_key == "n/a"
+    - name: reload facts
+      gpudb_facts:
+        enabled: true
+    - debug:
+        var: gpudb_secret_key
+  when: inventory_hostname == groups['kinetica'][0]
+
+- name: distribute s_key
+  block:
+    - name: determine which key to use
+      set_fact:
+        g_key: "{{ hostvars[groups['kinetica'][0]]['gpudb_secret_key'] }}"
+
+    - name: set secret key
+      shell: "echo -n {{ g_key }} > /opt/gpudb/.secret-key"
+      args:
+        warn: false
+      become: yes
+      become_user: gpudb
+
+- name: post_flight | start all
+  block:
+    - shell: "/opt/gpudb/core/bin/gpudb start"
+  when: inventory_hostname == groups['kinetica'][0]
+

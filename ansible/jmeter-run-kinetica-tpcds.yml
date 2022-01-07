@@ -1,0 +1,23 @@
+- name: Set JMeter Test Params
+  hosts: all
+  tasks:
+    - set_fact:
+        jmeter_test_name: kinetica-tpcds
+        date_info: "{{ ansible_date_time.date }}.{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+    - set_fact:
+        result_path: "/opt/benchmarks/results/{{ jmeter_test_name }}-{{ date_info }}/"
+
+- name: JMeter - Run Kinetica TPC-DS Benchmark
+  hosts: jmeter
+  roles:
+    - {role: jmeter-run-kinetica-tpcds }
+- name: Fetch Kinetica Config and put in results dir
+  hosts: kinetica[0]
+  tasks:
+    - name: Fetch results to local
+      fetch:
+        src: "/opt/gpudb/core/etc/gpudb.conf"
+        dest: "{{ jmeter_local_result_path }}/{{ jmeter_test_name }}-{{ hostvars[groups['jmeter'][0]]['date_info'] }}/"
+#         different date on different nodes due to different execution time
+#        dest: "{{ jmeter_local_result_path }}/{{ jmeter_test_name }}-{{ date_info }}/"
+        flat: yes

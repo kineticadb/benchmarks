@@ -1,0 +1,53 @@
+## Red Hat
+- name: Install GCC required for NVIDIA driver
+  yum:
+    name: gcc
+    state: present
+    update_cache: yes
+- name: nRhel | Download and Install driver x86_64
+  block:
+    - get_url:
+        url: "{{ kinetica_nvidia_driver }}"
+        dest: "/tmp/nvidia-driver.run"
+        timeout: 1800
+        mode: 0775
+    - shell: "/tmp/nvidia-driver.run -s --install-libglvnd -z -Z"
+      retries: 3
+
+#    - shell: "/mapr/apps/nvidia-driver/NVIDIA-Linux-x86_64-430.26.run -s --install-libglvnd -z -Z"
+#      retries: 3
+  rescue:
+    - fail:
+        msg: "Seems like there was a problem with the nvidia driver installation: in most cases is related to nouveau still running. Try restarting the box and restart Kinetica Setup. In SUSE environments, the kernel might not be in the same version as the headers, you might need to upgrade the kernel or install the right header version. If the problem continues check the nvidia install log at /var/log/nvidia-installer.log"
+- name: post_flight | nvidia - nouveau rc local Deb and Rhel
+  block:
+    - name: check for rc.local
+      stat:
+        path: /etc/rc.local
+      register: rc_local_out
+    - name: add rmmod nouveau to rc.local
+      lineinfile:
+        path: /etc/rc.local
+        insertbefore: '#? ?exit 0'
+        line: "rmmod nouveau"
+      when: rc_local_out.stat.exists == true
+    - name: create rc.local when it does not exist
+      template:
+        src: rc_local.j2
+        dest: "/etc/rc.local"
+        backup: yes
+        force: yes
+        mode: 0755
+      become: yes
+      when: rc_local_out.stat.exists != true
+
+- name: post_flight | nvidia persistenced
+  block:
+    - copy:
+        src: nvidia-persistenced.service
+        dest: /etc/systemd/system/nvidia-persistenced.service
+        backup: yes
+    - systemd:
+        name: nvidia-persistenced
+        state: started
+        enabled: yes

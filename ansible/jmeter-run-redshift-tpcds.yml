@@ -1,0 +1,4 @@
+- name: JMeter - Run Redshift TPC-DS Benchmark
+  hosts: jmeter
+  roles:
+    - {role: jmeter-run-redshift-tpcds }

@@ -1,0 +1,140 @@
+- name: Add official Omnisci YUM repository
+  yum_repository:
+    name: omnisci_repository
+    description: Official Repo for Omnisci
+    baseurl: "{{ omnisci_repository }}"
+    gpgcheck: no
+- name: Create Omnisci User
+  user:
+    name: omnisci
+    state: present
+    comment: Omnisci user
+- name: Install EPEL
+  package:
+    name: epel-release
+    update_cache: yes
+    state: present
+- name: Install kernel-devel
+  package:
+    name: kernel-devel
+    update_cache: yes
+    state: present
+- name: Install kernel-headers
+  package:
+    name: kernel-headers
+    update_cache: yes
+    state: present
+- name: CUDA Yum Repo
+  yum_repository:
+    name: cuda-rhel7-x86_64
+    baseurl: https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64
+    enabled: yes
+    gpgcheck: no
+- name: Install Vulkan File system
+  package:
+    name: vulkan-filesystem
+    update_cache: yes
+    state: present
+- name: Install NVIDIA
+  package:
+    name: nvidia-driver-latest-dkms
+    update_cache: yes
+    state: present
+- name: Install CUDA
+  package:
+    name: cuda
+    update_cache: yes
+    state: present
+- name: Install CUDA drivers
+  package:
+    name: cuda-drivers
+    update_cache: yes
+    state: present
+- name: Install Omnisci
+  package:
+    name: omnisci
+    update_cache: yes
+    state: present
+- name: Create Omnisci Install directory
+  file:
+    path: "/opt/omnisci/"
+    state: directory
+    mode: '0755'
+    owner: omnisci
+    group: omnisci
+- name: Create Omnisci Persist directory
+  file:
+    path: "/opt/omnisci_persist/"
+    state: directory
+    mode: '0755'
+    owner: omnisci
+    group: omnisci
+- name: Create Omnisci Persist directory
+  file:
+    path: "/opt/omnisci_logs/"
+    state: directory
+    mode: '0755'
+    owner: omnisci
+    group: omnisci
+- name: export OMNISCI_USER in /home/omnisci/.bashrc
+  lineinfile:
+    path: /home/omnisci/.bashrc
+    line: "export OMNISCI_USER=omnisci"
+    create: yes
+- name: export OMNISCI_GROUP in /home/omnisci/.bashrc
+  lineinfile:
+    path: /home/omnisci/.bashrc
+    line: "export OMNISCI_GROUP=omnisci"
+- name: export OMNISCI_STORAGE in /home/omnisci/.bashrc
+  lineinfile:
+    path: /home/omnisci/.bashrc
+    line: "export OMNISCI_STORAGE=/opt/omnisci_persist"
+- name: export OMNISCI_PATH in /home/omnisci/.bashrc
+  lineinfile:
+    path: /home/omnisci/.bashrc
+    line: "export OMNISCI_PATH=/opt/omnisci"
+- name: export OMNISCI_LOG in /home/omnisci/.bashrc
+  lineinfile:
+    path: /home/omnisci/.bashrc
+    line: "export OMNISCI_LOG=/opt/omnisci_logs"
+##
+- name: export OMNISCI_USER in /root/.bashrc
+  lineinfile:
+    path: /root/.bashrc
+    line: "export OMNISCI_USER=omnisci"
+    create: yes
+- name: export OMNISCI_GROUP in /root/.bashrc
+  lineinfile:
+    path: /root/.bashrc
+    line: "export OMNISCI_GROUP=omnisci"
+- name: export OMNISCI_STORAGE in /root/.bashrc
+  lineinfile:
+    path: /root/.bashrc
+    line: "export OMNISCI_STORAGE=/opt/omnisci_persist"
+- name: export OMNISCI_PATH in /root/.bashrc
+  lineinfile:
+    path: /root/.bashrc
+    line: "export OMNISCI_PATH=/opt/omnisci"
+- name: export OMNISCI_LOG in /root/.bashrc
+  lineinfile:
+    path: /root/.bashrc
+    line: "export OMNISCI_LOG=/opt/omnisci_logs"
+- name: Install
+  expect:
+    command: cd /opt/omnisci/systemd/ ; ./install_omnisci_systemd.sh
+    responses:
+      Question:
+        - /opt/omnisci
+        - /opt/omnisci_persist
+        - omnisci
+        - omnisci
+- name: Make sure omnisci_server is running
+  systemd:
+    state: started
+    enabled: yes
+    name: omnisci_server
+
+#    sudo yum-config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
+#    sudo yum clean all
+#    sudo yum -y install nvidia-driver-latest-dkms cuda
+#    sudo yum -y install cuda-drivers

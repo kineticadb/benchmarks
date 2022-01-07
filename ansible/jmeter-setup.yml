@@ -1,0 +1,9 @@
+- name: JMeter Setup
+  hosts: jmeter
+  roles:
+    - {role: centos-prepare }
+    - {role: jmeter-install }
+    - {role: jmeter-install-jdbc-driver-kinetica }
+    - {role: jmeter-install-jdbc-driver-spark3 }
+    - {role: jmeter-install-jdbc-driver-snowflake }
+    - {role: jmeter-install-jdbc-driver-redshift }

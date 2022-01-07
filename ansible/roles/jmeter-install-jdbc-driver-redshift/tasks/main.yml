@@ -1,0 +1,13 @@
+- name: Find JMeter Path
+  find: paths="/opt/" patterns="apache-jmeter*" file_type=directory
+  register: jmeter_path_result
+  failed_when: jmeter_path_result.matched != 1
+- set_fact:
+    jmeter_path: "{{ jmeter_path_result.files[0].path }}"
+- name: Download and install Redshift JDBC Driver
+  unarchive:
+    src: "{{ redshift_jdbc_download_url }}"
+    dest: "{{ jmeter_path }}/lib/ext/"
+#    timeout: 1800
+    remote_src: yes
+    mode: 0644

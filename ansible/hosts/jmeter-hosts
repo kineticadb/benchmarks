@@ -1,0 +1,10 @@
+# This file is only used for JMeter setup
+
+[all:vars]
+jmeter_download_url=http://mirror.23media.de/apache//jmeter/binaries/apache-jmeter-5.3.tgz
+kinetica_jdbc_download_url=http://files.kinetica.com/nexus/content/repositories/releases/com/kinetica/kinetica-jdbc/7.1.0.0/kinetica-jdbc-7.1.0.0-jar-with-dependencies.jar
+snowflake_jdbc_download_url=https://repo1.maven.org/maven2/net/snowflake/snowflake-jdbc/3.12.12/snowflake-jdbc-3.12.12.jar
+redshift_jdbc_download_url=https://s3.amazonaws.com/redshift-downloads/drivers/jdbc/1.2.50.1077/RedshiftJDBC42-1.2.50.1077.zip
+
+[jmeter]
+172.31.106.235 ansible_user=centos ansible_become=yes ansible_become_method=sudo

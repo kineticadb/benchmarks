@@ -1,0 +1,6 @@
+- name: Prepare CentOS, Install NVIDIA and Install Kinetica
+  hosts: kinetica
+  roles:
+    - {role: centos-prepare }
+    - {role: centos-nvidia, when: kinetica_build != 'intel' }
+    - {role: kinetica-install }

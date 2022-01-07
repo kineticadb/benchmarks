@@ -1,0 +1,21 @@
+- name: Find Spark 3 Path
+  find: paths="/opt/spark3/" patterns="spark-*" file_type=directory
+  register: spark3_path_result
+  failed_when: spark3_path_result.matched != 1
+- set_fact:
+    spark3_path: "{{ spark3_path_result.files[0].path }}"
+
+- name: Set Spark Thrift Server Command for Data Warehouse
+  set_fact:
+    spark3_thrift_exec_command: "{{ spark3_path }}/sbin/stop-thriftserver.sh"
+
+- name: Debug Spark Thrift Exec Command
+  debug:
+    var: spark3_thrift_exec_command
+
+- name: Stop Spark Thrift Server
+  become: yes
+  become_user: spark
+  shell: "{{ spark3_thrift_exec_command }}"
+  args:
+    chdir: "/opt/spark3/"

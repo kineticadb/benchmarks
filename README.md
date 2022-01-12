@@ -1,6 +1,6 @@
 # Benchmark Databases
 
-Project to benchmarrk different products against TPC-DS and TPC-H.
+Project to benchmark different products against TPC-DS and TPC-H.
 The benchmark results will be loaded to the machine where the Ansible client runs and stored in the folder configured in jmeter_local_result_path.
 The detailed test results can be found in this file: test-results.csv
 

@@ -6,8 +6,8 @@ redshift_password=oxByEeozM44K
 # Snowflake is only S3 import
 dataimport_s3_bucket_name=kinetica-benchmark
 dataimport_s3_region=eu-central-1
-dataimport_s3_user=AKIA3TZ6GK7TDAQ6KKHT
-dataimport_s3_password=FfsLD8vMTCg9tteW3aCiExmdWZAmSUtplpQe7iME
+dataimport_s3_user=<ENTER USER>
+dataimport_s3_password=<ENTER PASSWORD>
 dataimport_s3_region=eu-central-1
 
 # TPC-DS related

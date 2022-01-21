@@ -4,9 +4,6 @@ Project to benchmark different products against TPC-DS and TPC-H.
 The benchmark results will be loaded to the machine where the Ansible client runs and stored in the folder configured in jmeter_local_result_path.
 The detailed test results can be found in this file: test-results.csv
 
-The results will be copied in one of these Excel sheets:
-https://docs.google.com/spreadsheets/d/1oBRdH41LMIoiKH9wxeDo7afMiDMvTlF_QtJgEKpVDCI/edit#gid=0
-
 ## Setup JMeter (required to run the benchmarks)
 ```
 ansible-playbook -i jmeter-hosts jmeter-setup.yml

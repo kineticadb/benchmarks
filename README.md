@@ -1,46 +1,95 @@
-# Clickhouse Vs. Kinetica Benchmark
+# Benchmark Databases
 
-Project was to benchmark CLickhouse against Kinetica for a TPC-DS SF100 query workload.
-This repo items contain couple of PDF files with the results of the queries.
-This repo also contains the SQL queries used for Clickhouse.
+Project to benchmark different products against TPC-DS and TPC-H.
+The benchmark results will be loaded to the machine where the Ansible client runs and stored in the folder configured in jmeter_local_result_path.
+The detailed test results can be found in this file: test-results.csv
 
-## Random but relevant commands used to load data into Clickhouse
+## Setup JMeter (required to run the benchmarks)
 ```
-CREATE DATABASE tpcdsch ENGINE = Memory COMMENT 'TPCDS DB';
-
-CREATE TABLE tpcdsch.catalog_sales ( \
-'cs_sold_date_sk' Int8, \
-'cs_sold_time_sk' Int8)\
-ENGINE = MergeTree() PARTITION BY (cs_sold_date_sk) ORDER BY (cs_sold_time_sk) SETTINGS index_granularity = 8192;
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/catalog_sales.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.catalog_sales FORMAT CSV" < $filename; done)
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/call_center.csv; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.call_center FORMAT CSV" < $filename; done)
- 
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/date_dim.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.date_dim FORMAT CSV" --max_partitions_per_insert_block=0 < $filename; done) 
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/household_demographics.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.household_demographics FORMAT CSV" < $filename; done)
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/item.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.item FORMAT CSV"  --max_partitions_per_insert_block=0 < $filename; done)
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/store.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.store FORMAT CSV"  --max_partitions_per_insert_block=50< $filename; done)
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/store_sales.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.store_sales FORMAT CSV" < $filename; done)
-
-clickhouse-client --format_csv_delimiter="|" -m
-set max_partitions_per_insert_block=10000;
-INSERT INTO tpcdsch.store_sales FROM INFILE '/mapr/data/qe/tpc/tpc-ds/s100/123120192359/store_sales.dat' FORMAT CSV;
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/web_sales.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.web_sales FORMAT CSV" < $filename; done)
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/customer.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.customer FORMAT CSV"  --max_partitions_per_insert_block=0   --input_format_allow_errors_num=10000000 < $filename; done)
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/customer_demographics.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.customer_demographics FORMAT CSV" < $filename; done)
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/promotion.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.promotion FORMAT CSV" < $filename; done)
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/store_returns.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.store_returns FORMAT CSV" < $filename; done)
-
-time (for filename in /mapr/data/qe/tpc/tpc-ds/s100/123120192359/customer_address.dat; do clickhouse-client --format_csv_delimiter="|" --query="INSERT INTO tpcdsch.customer_address FORMAT CSV" < $filename; done)
-
+ansible-playbook -i jmeter-hosts jmeter-setup.yml
 ```
+
+## Kinetica
+
+Setup / Install Kinetica
+```
+ansible-playbook -i kinetica-hosts kinetica-setup.yml
+```
+Load TPC-DS data
+```
+ansible-playbook -i kinetica-hosts kinetica-setup-tpcds-database.yml
+```
+Run TPC-DS Benchmark for Kinetica 
+```
+ansible-playbook -i kinetica-hosts jmeter-run-kinetica-tpcds.yml
+```
+Load TPC-H data
+```
+ansible-playbook -i kinetica-hosts kinetica-setup-tpch-database.yml
+```
+Run TPC-H Benchmark for Kinetica 
+```
+ansible-playbook -i kinetica-hosts jmeter-run-kinetica-tpch.yml
+```
+
+## Spark
+
+Setup / Install Spark
+```
+ansible-playbook -i spark3-hosts spark3-setup.yml
+```
+Load TPC-DS data
+```
+ansible-playbook -i spark3-hosts spark3-setup-tpcds-database.yml
+```
+Run TPC-DS Benchmark for Spark3 
+```
+ansible-playbook -i spark3-hosts jmeter-run-spark3-tpcds.yml
+```
+Load TPC-H data
+```
+ansible-playbook -i spark3-hosts spark3-setup-tpch-database.yml
+```
+Run TPC-H Benchmark for Spark3 
+```
+ansible-playbook -i spark3-hosts jmeter-run-spark3-tpch.yml
+```
+
+## Snowflake
+
+Setup / Install Snowflake client (required to load TPC-DS data)
+```
+ansible-playbook -i snowflake-hosts snowflake-setup.yml
+```
+Load TPC-DS data
+```
+ansible-playbook -i snowflake-hosts snowflake-setup-tpcds-database.yml
+```
+Run TPC-DS Benchmark for Snowflake 
+```
+ansible-playbook -i snowflake-hosts jmeter-run-snowflake-tpcds.yml
+```
+Load TPC-H data
+```
+ansible-playbook -i snowflake-hosts snowflake-setup-tpch-database.yml
+```
+Run TPC-H Benchmark for Snowflake 
+```
+ansible-playbook -i snowflake-hosts jmeter-run-snowflake-tpch.yml
+```
+
+## Redshift
+
+Setup / Install Redshift client (required to load TPC-DS data)
+```
+ansible-playbook -i redshift-hosts redshift-setup.yml
+```
+Load TPC-DS data
+```
+ansible-playbook -i redshift-hosts redshift-setup-tpcds-database.yml
+```
+Run TPC-DS Benchmark for Redshift 
+```
+ansible-playbook -i redshift-hosts jmeter-run-redshift-tpcds.yml
+```
+

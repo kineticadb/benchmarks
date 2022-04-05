@@ -34,16 +34,16 @@ L3 cache:              35840K
 NUMA node0 CPU(s):     0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,52,54
 NUMA node1 CPU(s):     1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55
 
-```
 [kinuser@g-300-301-u21-k80 ~]$ free -g
               total        used        free      shared  buff/cache   available
 Mem:            503         184         298           0          20         317
 Swap:             7           0           7
 
-```
 [kinuser@g-300-301-u21-k80 etc]$ df -h | grep /mnt/data
 /dev/mapper/vg_data-lv_data                    1.9T  361G  1.6T  19% /mnt/data
 (2TB SAMSUNG SSD)
+
+```
 
 ## Random but relevant commands used to load data into Clickhouse
 ```
